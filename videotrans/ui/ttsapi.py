@@ -17,13 +17,13 @@ class Ui_ttsapiform(object):
         if not ttsapiform.objectName():
             ttsapiform.setObjectName("ttsapiform")
         ttsapiform.setWindowModality(Qt.NonModal)
-        ttsapiform.resize(600, 400)
+        ttsapiform.resize(600, 500)
         sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(ttsapiform.sizePolicy().hasHeightForWidth())
         ttsapiform.setSizePolicy(sizePolicy)
-        ttsapiform.setMaximumSize(QSize(600, 400))
+        ttsapiform.setMaximumSize(QSize(600, 500))
         self.label_3 = QLabel(ttsapiform)
         self.label_3.setObjectName("label_3")
         self.label_3.setGeometry(QRect(10, 120, 101, 16))
@@ -61,6 +61,11 @@ class Ui_ttsapiform(object):
         self.test.setGeometry(QRect(490, 350, 93, 35))
         self.test.setMinimumSize(QSize(0, 35))
 
+        self.otherlink=QPushButton(ttsapiform)
+        self.otherlink.setStyleSheet("""background-color:transparent;border:0;""")
+        self.otherlink.setText("第三方实现OpenVoice接口 https://github.com/kungful/openvoice-api")
+        self.otherlink.setGeometry(QRect(10,400,400,35))
+
         self.retranslateUi(ttsapiform)
 
         QMetaObject.connectSlotsByName(ttsapiform)
@@ -83,10 +88,16 @@ extra:额外参数/字符串
     code:0=合成成功时，>0的数字代表失败
     msg:ok=合成成功时，其他为失败原因
     data:在合成成功时，返回mp3文件的完整url地址，用于在软件内下载。失败时为空
-}            
+}       
+
+----
+OpenVoice-v2第三方实现自定义api
+https://github.com/kungful/openvoice-api
+     
 """
         else:
             tips="""
+            
 The application/www-urlencode data will be sent in a POST request to the filled API address:
 
 text:text/string
@@ -103,7 +114,7 @@ Expect data to be returned from the interface in json format:
     data:On successful synthesis, return the full url of the mp3 file for downloading within the software. When it fails, the url will be empty.
 }            
 """
-        ttsapiform.setWindowTitle("自定义TTS-API" if config.defaulelang=='zh' else "Customizing the TTS-API")
+        ttsapiform.setWindowTitle("自定义TTS-API/无编码能力勿使用该功能" if config.defaulelang=='zh' else "Customizing the TTS-API")
         self.label_3.setText("额外参数" if config.defaulelang=='zh' else "additional parameter")
         self.tips.setPlainText(tips)
         self.tips.setPlaceholderText("")

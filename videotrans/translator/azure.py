@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 import time
 import httpx
@@ -6,6 +7,24 @@ from openai import AzureOpenAI, APIError
 from videotrans.configure import config
 from videotrans.util import tools
 
+
+shound_del=False
+def update_proxy(type='set'):
+    global shound_del
+    if type=='del' and shound_del:
+        del os.environ['http_proxy']
+        del os.environ['https_proxy']
+        del os.environ['all_proxy']
+        shound_del=False
+    elif type=='set':
+        raw_proxy=os.environ.get('http_proxy')
+        if not raw_proxy:
+            proxy=tools.set_proxy()
+            if proxy:
+                shound_del=True
+                os.environ['http_proxy'] = proxy
+                os.environ['https_proxy'] = proxy
+                os.environ['all_proxy'] = proxy
 
 def get_content(d,*,model=None,prompt=None):
     message = [
@@ -46,13 +65,7 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
     set_p:
         是否实时输出日志，主界面中需要
     """
-    proxies = None
-    serv = tools.set_proxy()
-    if serv:
-        proxies = {
-            'http://': serv,
-            'https://': serv
-        }
+    update_proxy(type='set')
 
     # 翻译后的文本
     target_text = {"0":[]}
@@ -97,7 +110,7 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
             api_key=config.params["azure_key"],
             api_version="2023-05-15",
             azure_endpoint=config.params["azure_api"],
-            http_client=httpx.Client(proxies=proxies)
+            http_client=httpx.Client()
         )
 
 
@@ -118,14 +131,18 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
                         tools.set_process_box(text=result + "\n", func_name="fanyi",type="set")
                     continue
 
-                sep_res = result.strip().split("\n")
+                sep_res = tools.cleartext(result).split("\n")
                 raw_len = len(it)
                 sep_len = len(sep_res)
-                if sep_len != raw_len:
-                    sep_res = []
-                    for it_n in it:
-                        t, response = get_content([it_n.strip()],model=client,prompt=prompt)
-                        sep_res.append(t)
+                # 如果返回数量和原始语言数量不一致，则重新切割
+                if sep_len < raw_len:
+                    print(f'翻译前后数量不一致，需要重新切割')
+                    sep_res = tools.format_result(it, sep_res, target_lang=target_language)
+                # if sep_len != raw_len:
+                #     sep_res = []
+                #     for it_n in it:
+                #         t, response = get_content([it_n.strip()],model=client,prompt=prompt)
+                #         sep_res.append(t)
                 for x,result_item in enumerate(sep_res):
                     if x < len(it):
                         target_text["srts"].append(result_item.strip().rstrip(end_point))
@@ -149,6 +166,8 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
         else:
             break
 
+
+    update_proxy(type='del')
 
     if err:
         config.logger.error(f'[AzureGPT]翻译请求失败:{err=}')

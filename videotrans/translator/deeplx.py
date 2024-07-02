@@ -1,10 +1,27 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 import time
 import requests
 from videotrans.configure import config
 from videotrans.util import tools
-
+shound_del=False
+def update_proxy(type='set'):
+    global shound_del
+    if type=='del' and shound_del:
+        del os.environ['http_proxy']
+        del os.environ['https_proxy']
+        del os.environ['all_proxy']
+        shound_del=False
+    elif type=='set':
+        raw_proxy=os.environ.get('http_proxy')
+        if not raw_proxy:
+            proxy=tools.set_proxy()
+            if proxy:
+                shound_del=True
+                os.environ['http_proxy'] = proxy
+                os.environ['https_proxy'] = proxy
+                os.environ['all_proxy'] = proxy
 
 def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source_code=""):
     """
@@ -18,15 +35,11 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
     url=config.params['deeplx_address'].strip().rstrip('/').replace('/translate','')+'/translate'
     if not url.startswith('http'):
         url=f"http://{url}"
-    serv = tools.set_proxy()
-    proxies = None
-    if serv:
-        proxies = {
-            'http': serv,
-            'https': serv
-        }
-    if re.search(r'localhost',url) or re.match(r'https?://(\d+\.){3}\d+',url):
-        proxies={"http":"","https":""}
+    proxies=None
+    if not re.search(r'localhost',url) and not re.match(r'https?://(\d+\.){3}\d+',url):
+        update_proxy(type='set')
+    else:
+        proxies={"https":"","http":""}
     # 翻译后的文本
     target_text = []
     index = 0  # 当前循环需要开始的 i 数字,小于index的则跳过
@@ -70,18 +83,23 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
                 }
                 config.logger.info(f'[DeepLX]发送请求数据,{data=}')
 
-                response = requests.post(url=url, json=data, proxies=proxies)
+                response = requests.post(url=url, json=data,proxies=proxies)
                 config.logger.info(f'[DeepLX]返回响应,{response.text=}')
                 try:
                     result = response.json()
                 except Exception as e:
                     err=config.transobj['notjson']+response.text
                     break
-                result=result['data'].strip().replace('&#39;','"').replace('&quot;',"'")
+                result=tools.cleartext(result['data'])
                 if not result:
                     err=f'无有效返回，{response.text=}'
                     break
                 result=result.split("\n")
+                result_length = len(result)
+                # 如果返回数量和原始语言数量不一致，则重新切割
+                if result_length < source_length:
+                    print(f'翻译前后数量不一致，需要重新切割')
+                    result = tools.format_result(it, result, target_lang=target_language)
                 config.logger.info(f'result,{i=}, {result=}')
                 if inst and inst.precent < 75:
                     inst.precent += round((i + 1) * 5 / len(split_source_text), 2)
@@ -90,6 +108,7 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
                     tools.set_process(config.transobj['starttrans']+f' {i*split_size+1} ',btnkey=inst.init['btnkey'] if inst else "")
                 else:
                     tools.set_process("\n\n".join(result), func_name="set_fanyi")
+
                 result_length = len(result)
                 while result_length < source_length:
                     result.append("")
@@ -106,6 +125,9 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
                 index=0 if i<=1 else i
         else:
             break
+
+    update_proxy(type='del')
+
     if err:
         config.logger.error(f'[DeepLX]翻译请求失败:{err=}')
         raise Exception(f'DeepLX:{err}')

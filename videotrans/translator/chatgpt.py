@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 import time
 import httpx
@@ -8,40 +9,59 @@ from videotrans.configure import config
 from videotrans.util import tools
 
 def get_url(url=""):
+    
+    if not url.startswith('http'):
+        url='http://'+url    
+    # 删除末尾 /
+    url=url.rstrip('/').lower()
     if not url or url.find(".openai.com")>-1:
         return "https://api.openai.com/v1"
-    url=url.rstrip('/').lower()
-    if not url.startswith('http'):
-        url='http://'+url
-    if re.match(r'.*/v1/(chat/)?completions/?$',url):
-        return re.sub(r'/v1/.*$','/v1',url)
-    if re.match(r'^https?://[^/]+?$',url):
+    # 存在 /v1/xx的，改为 /v1
+    if re.match(r'.*/v1/(chat)?(/?completions)?$',url):
+        return re.sub(r'/v1.*$','/v1',url)
+    # 不是/v1结尾的改为 /v1
+    if url.find('/v1')==-1:
         return url+"/v1"
     return url
 
+shound_del=False
+def update_proxy(type='set'):
+    global shound_del
+    if type=='del' and shound_del:
+        del os.environ['http_proxy']
+        del os.environ['https_proxy']
+        del os.environ['all_proxy']
+        shound_del=False
+    elif type=='set':
+        raw_proxy=os.environ.get('http_proxy')
+        if not raw_proxy:
+            proxy=tools.set_proxy()
+            if proxy:
+                shound_del=True
+                os.environ['http_proxy'] = proxy
+                os.environ['https_proxy'] = proxy
+                os.environ['all_proxy'] = proxy
 
 def create_openai_client():
     api_url = get_url(config.params['chatgpt_api'])
     openai.base_url = api_url
     config.logger.info(f'当前chatGPT:{api_url=}')
     proxies=None
-    if not re.search(r'localhost',api_url) and not re.match(r'https?://(\d+\.){3}\d+',api_url):
-        serv = tools.set_proxy()
-        if serv:
-            proxies = {
-                'http://': serv,
-                'https://': serv
-            }
+    if not re.search('localhost',api_url) and  not re.match(r'^https?://(\d+\.){3}\d+(:\d+)?',api_url):
+        update_proxy(type='set')
+    else:
+        proxies={"http://":None,"https://":None}
     try:
         client = OpenAI(base_url=api_url,http_client=httpx.Client(proxies=proxies))
     except Exception as e:
         raise Exception(f'API={api_url},{str(e)}')
     return client,api_url
 
-def get_content(d,*,model=None,prompt=None):
+def get_content(d,*,model=None,prompt=None,assiant=None):
     message = [
-        {'role': 'system', 'content': "You are a professional, authentic translation engine, only returns translations."},
-        {'role': 'user', 'content':  prompt.replace('[TEXT]',"\n".join(d))},
+        {'role': 'system', 'content': prompt},
+        {'role': 'assistant', 'content': assiant},
+        {'role': 'user', 'content':  "\n".join(d)},
     ]
     config.logger.info(f"\n[chatGPT]发送请求数据:{message=}")
     try:
@@ -56,7 +76,8 @@ def get_content(d,*,model=None,prompt=None):
     except Exception as e:
         config.logger.error(f'[chatGPT]请求失败:{str(e)}')
         raise Exception(e)
-
+    if isinstance(response,str):
+        raise Exception(response)
     if response.choices:
         result = response.choices[0].message.content.strip()
     elif response.data and response.data['choices']:
@@ -93,6 +114,7 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
     with open(config.rootdir+"/videotrans/chatgpt.txt",'r',encoding="utf-8") as f:
         prompt=f.read()
     prompt=prompt.replace('{lang}', target_language)
+    assiant=f"Sure, please provide the text you need translated into {target_language}"
 
 
     end_point="。" if config.defaulelang=='zh' else '. '
@@ -133,7 +155,7 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
                 time.sleep(stop)
             
             try:
-                result,response=get_content(it,model=client,prompt=prompt)
+                result,response=get_content(it,model=client,prompt=prompt,assiant=assiant)
 
                 if inst and inst.precent < 75:
                     inst.precent += 0.01
@@ -143,14 +165,18 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
                         tools.set_process_box(text=result + "\n",func_name="fanyi",type="set")
                     continue
                
-                sep_res = result.strip().split("\n")
+                sep_res = tools.cleartext(result).split("\n")
                 raw_len = len(it)
                 sep_len = len(sep_res)
-                if sep_len != raw_len:
-                    sep_res = []
-                    for it_n in it:
-                        t, response = get_content([it_n.strip()],model=client,prompt=prompt)
-                        sep_res.append(t)
+                # 如果返回数量和原始语言数量不一致，则重新切割
+                if sep_len < raw_len:
+                    print(f'翻译前后数量不一致，需要重新切割')
+                    sep_res = tools.format_result(it, sep_res, target_lang=target_language)
+                # if sep_len != raw_len:
+                #     sep_res = []
+                #     for it_n in it:
+                #         t, response = get_content([it_n.strip()],model=client,prompt=prompt)
+                #         sep_res.append(t)
 
                 for x,result_item in enumerate(sep_res):
                     if x < len(it):
@@ -175,8 +201,12 @@ def trans(text_list, target_language="English", *, set_p=True,inst=None,stop=0,s
         else:
             break
 
+    update_proxy(type='del')
+
     if err:
         config.logger.error(f'[ChatGPT]翻译请求失败:{err=}')
+        if err.lower().find("Connection error")>-1:
+            err='连接失败 '+err
         raise Exception(f'ChatGPT:{err}')
 
     if not is_srt:

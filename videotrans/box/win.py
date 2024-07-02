@@ -21,6 +21,7 @@ from videotrans.util import tools
 import shutil
 from videotrans.ui.toolboxen import Ui_MainWindow
 from videotrans.util.tools import get_azure_rolelist, get_edge_rolelist
+from pathlib import Path
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -35,7 +36,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.initUI()
         self.setWindowIcon(QIcon(f"{config.rootdir}/videotrans/styles/icon.ico"))
         self.setWindowTitle(
-            f"pyVideoTrans{config.uilanglist['Video Toolbox']} {VERSION} pyvideotrans.com {' Q群 905857759 ' if config.defaulelang == 'zh' else ''}")
+            f"pyVideoTrans{config.uilanglist['Video Toolbox']} {VERSION} {' 使用文档 ' if config.defaulelang == 'zh' else 'Documents'}  pyvideotrans.com")
 
     def closeEvent(self, event):
         if config.exit_soft:
@@ -120,6 +121,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.hecheng_role.addItems(['No'])
         self.hecheng_language.currentTextChanged.connect(self.hecheng_language_fun)
         self.hecheng_startbtn.clicked.connect(self.hecheng_start_fun)
+        self.listen_btn.clicked.connect(self.listen_voice_fun)
         self.hecheng_opendir.clicked.connect(lambda: self.opendir_fn(self.hecheng_out.text().strip()))
         # 设置 tts_type
         self.tts_type.addItems([i for i in config.params['tts_type_list']])
@@ -127,36 +129,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tts_type.currentTextChanged.connect(self.tts_type_change)
         self.tts_issrt.stateChanged.connect(self.tts_issrt_change)
 
-        # tab-5 格式转换
-        # self.geshi_input = TextGetdir()
-        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        # sizePolicy.setHorizontalStretch(0)
-        # sizePolicy.setVerticalStretch(0)
-        # sizePolicy.setHeightForWidth(self.geshi_result.sizePolicy().hasHeightForWidth())
-        # self.geshi_input.setSizePolicy(sizePolicy)
-        # self.geshi_input.setMinimumSize(300, 0)
-        #
-        # self.geshi_input.setPlaceholderText(config.transobj['tuodongdaoci'])
-        #
-        # self.geshi_importbtn = QtWidgets.QPushButton(self.tab_6)
-        # self.geshi_importbtn.setObjectName("geshi_importbtn")
-        # self.geshi_importbtn.setFixedWidth(100)
-        # self.geshi_importbtn.setText(config.box_lang['import audio or video'])
-        # self.geshi_importbtn.clicked.connect(lambda: self.geshi_import_fun(self.geshi_input))
-        # self.horizontalLayout_14.insertWidget(0, self.geshi_importbtn)
-        #
-        # self.geshi_layout.insertWidget(0, self.geshi_input)
-        # self.geshi_mp4.clicked.connect(lambda: self.geshi_start_fun("mp4"))
-        # self.geshi_avi.clicked.connect(lambda: self.geshi_start_fun("avi"))
-        # self.geshi_mov.clicked.connect(lambda: self.geshi_start_fun("mov"))
-        # self.geshi_mp3.clicked.connect(lambda: self.geshi_start_fun("mp3"))
-        # self.geshi_wav.clicked.connect(lambda: self.geshi_start_fun("wav"))
-        # self.geshi_aac.clicked.connect(lambda: self.geshi_start_fun("aac"))
-        # self.geshi_m4a.clicked.connect(lambda: self.geshi_start_fun("m4a"))
-        # self.geshi_flac.clicked.connect(lambda: self.geshi_start_fun("flac"))
-        # self.geshi_output.clicked.connect(lambda: self.opendir_fn(f'{config.homedir}/conver'))
-        # if not os.path.exists(f'{config.homedir}/conver'):
-        #     os.makedirs(f'{config.homedir}/conver', exist_ok=True)
+
 
         # 混流
         self.hun_file1btn.clicked.connect(lambda: self.hun_get_file('file1'))
@@ -238,11 +211,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def hecheng_import_fun(self):
         fnames, _ = QFileDialog.getOpenFileNames(self, "Select srt", config.last_opendir,
-                                                 "Text files(*.srt)")
+                                                 "Text files(*.srt *.txt)")
         if len(fnames) < 1:
             return
         for (i, it) in enumerate(fnames):
-            fnames[i] = it.replace('\\', '/').replace('file:///', '')
+            it=it.replace('\\', '/').replace('file:///', '')
+            if it.endswith('.txt'):
+                shutil.copy2(it,f'{it}.srt')
+                # 使用 "r+" 模式打开文件：读取和写入
+                with open(f'{it}.srt', 'r+', encoding='utf-8') as file:
+                    # 读取原始文件内容
+                    original_content = file.readlines()
+                    # 将文件指针移动到文件开始位置
+                    file.seek(0)
+                    # 将新行内容与原始内容合并，并写入文件
+                    file.writelines(["1\n","00:00:00,000 --> 05:00:00,000\n"] + original_content)
+
+                it+='.srt'
+            fnames[i] = it
 
         if len(fnames) > 0:
             config.last_opendir = os.path.dirname(fnames[0])
@@ -457,7 +443,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         tmpname = f'{config.TEMP_DIR}/{time.time()}.mp4'
         tmpname_conver = f'{config.TEMP_DIR}/box-conver.mp4'
         video_info = tools.get_video_info(videofile)
-        if videofile[-3:].lower() != 'mp4' or video_info['video_codec_name'] != 'h264' or (
+        video_codec= 'h264' if config.settings['video_codec']==264 else 'hevc'
+        if videofile[-3:].lower() != 'mp4' or video_info['video_codec_name'] != video_codec or (
                 video_info['streams_audio'] > 0 and video_info['audio_codec_name'] != 'aac'):
             try:
                 tools.conver_mp4(videofile, tmpname_conver, is_box=True)
@@ -532,7 +519,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def model_type_change(self):
         if self.shibie_model_type.currentIndex() == 1:
             model_type = 'openai'
-            self.shibie_whisper_type.setDisabled(False)
+            self.shibie_whisper_type.setDisabled(True)
             self.shibie_model.setDisabled(False)
         elif self.shibie_model_type.currentIndex() == 2:
             model_type = 'GoogleSpeech'
@@ -540,6 +527,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.shibie_model.setDisabled(True)
         elif self.shibie_model_type.currentIndex() == 3:
             model_type = 'zh_recogn'
+            self.shibie_whisper_type.setDisabled(True)
+            self.shibie_model.setDisabled(True)
+        elif self.shibie_model_type.currentIndex() == 4:
+            model_type = 'doubao'
             self.shibie_whisper_type.setDisabled(True)
             self.shibie_model.setDisabled(True)
         else:
@@ -557,8 +548,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             model_type = 'GoogleSpeech'
         elif self.shibie_model_type.currentIndex() == 3:
             model_type = 'zh_recogn'
+        elif self.shibie_model_type.currentIndex() == 4:
+            model_type = 'doubao'
         else:
             model_type = "faster"
+            
+        langcode=translator.get_audio_code(show_source=self.shibie_language.currentText())
+        
         is_cuda = self.is_cuda.isChecked()
         if is_cuda and model_type == 'faster':
             allow = True
@@ -572,7 +568,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if not allow:
                     self.is_cuda.setChecked(False)
                     return QMessageBox.critical(self, config.transobj['anerror'], config.transobj["nocudnn"])
-        if model_type == 'faster':
+        if model_type == 'faster' and model.find('/')==-1:
             file = f'{config.rootdir}/models/models--Systran--faster-whisper-{model}/snapshots'
             if model.startswith('distil'):
                 file = f'{config.rootdir}/models/models--Systran--faster-{model}/snapshots'
@@ -587,42 +583,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if not files or len(files) < 1:
             return QMessageBox.critical(self, config.transobj['anerror'], config.transobj['bixuyinshipin'])
+        
+        if model_type =='zh_recogn' and langcode[:2] not in ['zh']:
+            return QMessageBox.critical(self,config.transobj['anerror'],'zh_recogn 仅支持中文语音识别' if config.defaulelang=='zh' else 'zh_recogn Supports Chinese speech recognition only')
+        
+        if model_type =='doubao' and langcode[:2] not in ["zh","en","ja","ko","fr","es","ru"]:
+            return QMessageBox.critical(self,config.transobj['anerror'],'豆包语音识别仅支持中英日韩法俄西班牙语言，其他不支持')
+        
 
         wait_list = []
         self.shibie_startbtn.setText(config.transobj["running"])
         self.disabled_shibie(True)
         self.label_shibie10.setText('')
         for file in files:
-            basename = os.path.basename(file)
-            '''
-            try:
-                rs, newfile, base = tools.rename_move(file, is_dir=False)
-                if rs:
-                    file = newfile
-                    basename = base
-            except Exception as e:
-                print(f"removename {str(e)}")
-            '''
+            basename = os.path.basename(file)           
             self.shibie_text.clear()
-
-            if os.path.splitext(basename)[-1].lower() in [".mp4", ".avi", ".mov", ".mp3", ".flac", ".m4a", ".mov",
-                                                          ".aac"]:
-                out_file = f"{config.TEMP_HOME}/{basename}.wav"
-                if not os.path.exists(f"{config.TEMP_HOME}"):
-                    os.makedirs(f"{config.TEMP_HOME}")
-                try:
-                    self.shibie_ffmpeg_task = Worker([
-                        ['-y', '-i', file, '-vn', '-ac', '1', '-ar', '8000', out_file]
-                    ], "logs", self)
-                    self.shibie_ffmpeg_task.start()
-                    wait_list.append(out_file)
-                except Exception as e:
-                    config.logger.error("执行语音识别前，先从视频中分离出音频失败：" + str(e))
-                    self.shibie_startbtn.setText("执行")
-                    self.disabled_shibie(False)
-                    QMessageBox.critical(self, config.transobj['anerror'], str(e))
-            else:
-                wait_list.append(file)
+            wait_list.append(file)
 
         self.shibie_out_path = config.homedir + f"/recogn"
 
@@ -632,9 +608,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.shibie_task = WorkerWhisper(
             audio_paths=wait_list,
             model=model,
-            split_type=["all", "split", "avg"][split_type_index],
+            split_type=["all","avg"][split_type_index],
             model_type=model_type,
-            language=translator.get_audio_code(show_source=self.shibie_language.currentText()),
+            language=langcode,
             func_name="shibie",
             out_path=self.shibie_out_path,
             is_cuda=is_cuda,
@@ -648,11 +624,79 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.shibie_language.setDisabled(type)
         self.shibie_model.setDisabled(type)
 
+
+    # 试听配音
+    def listen_voice_fun(self):
+        lang = translator.get_code(show_text=self.hecheng_language.currentText())
+        if not lang or lang=='-':
+            return QMessageBox.critical(self, config.transobj['anerror'], "选择字幕语言" if config.defaulelang=='zh' else 'Please target language')
+        text = config.params[f'listen_text_{lang}']
+        role = self.hecheng_role.currentText()
+        if not role or role == 'No':
+            return QMessageBox.critical(self, config.transobj['anerror'], config.transobj['mustberole'])
+        voice_dir = os.environ.get('APPDATA') or os.environ.get('appdata')
+        if not voice_dir or not Path(voice_dir).exists():
+            voice_dir = config.rootdir + "/tmp/voice_tmp"
+        else:
+            voice_dir = voice_dir.replace('\\', '/') + "/pyvideotrans"
+        if not Path(voice_dir).exists():
+            Path(voice_dir).mkdir(parents=True,exist_ok=True)
+        lujing_role = role.replace('/', '-')
+        
+        rate = int(self.hecheng_rate.value())
+        tts_type = self.tts_type.currentText()
+        
+        if rate >= 0:
+            rate = f"+{rate}%"
+        else:
+            rate = f"{rate}%"
+        volume=int(self.volume_rate.value())
+        pitch=int(self.pitch_rate.value())
+        volume=f'+{volume}%' if volume>=0 else f'{volume}%'
+        pitch=f'+{pitch}Hz' if pitch>=0 else f'{volume}Hz'
+        
+        
+        
+        voice_file = f"{voice_dir}/{tts_type}-{lang}-{lujing_role}-{volume}-{pitch}.mp3"
+        if tts_type in ['GPT-SoVITS','ChatTTS']:
+            voice_file += '.wav'
+
+        obj = {
+            "text": text,
+            "rate": '+0%',
+            "role": role,
+            "voice_file": voice_file,
+            "tts_type": tts_type,
+            "language": lang,
+            "volume":volume,
+            "pitch":pitch,
+        }
+        
+        if tts_type == 'clone-voice' and role == 'clone':
+            return
+        # 测试能否连接clone
+        if tts_type == 'clone-voice':
+            try:
+                tools.get_clone_role(set_p=True)
+            except:
+                QMessageBox.critical(self, config.transobj['anerror'],
+                                     config.transobj['You must deploy and start the clone-voice service'])
+                return
+
+        def feed(d):
+            QMessageBox.critical(self, config.transobj['anerror'], d)
+
+        from videotrans.task.play_audio import PlayMp3
+        t = PlayMp3(obj, self)
+        t.mp3_ui.connect(feed)
+        t.start()
+
     # tab-4 语音合成
     def hecheng_start_fun(self):
         txt = self.hecheng_plaintext.toPlainText().strip()
         language = self.hecheng_language.currentText()
         role = self.hecheng_role.currentText()
+        print(f'{role=}')
         rate = int(self.hecheng_rate.value())
         tts_type = self.tts_type.currentText()
         langcode = translator.get_code(show_text=language)
@@ -666,10 +710,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                         config.transobj['bixutianxie'] + "chatGPT key")
         if tts_type == 'GPT-SoVITS' and langcode[:2] not in ['zh', 'ja', 'en']:
             # 除此指望不支持
-            config.params['tts_type'] = 'edgeTTS'
+            tts_type = 'edgeTTS'
             self.tts_type.setCurrentText('edgeTTS')
             QMessageBox.critical(self, config.transobj['anerror'], config.transobj['nogptsovitslanguage'])
             return
+        if tts_type == 'ChatTTS' and langcode[:2] not in ['zh', 'en']:
+            # 除此指望不支持
+            tts_type = 'edgeTTS'
+            self.tts_type.setCurrentText('edgeTTS')
+            QMessageBox.critical(self, config.transobj['anerror'], config.transobj['onlycnanden'])
+            return
+
         if rate >= 0:
             rate = f"+{rate}%"
         else:
@@ -699,6 +750,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
         issrt = self.tts_issrt.isChecked()
+        if len(self.hecheng_files)>0:
+            self.tts_issrt.setChecked(True)
+            issrt=True
+            
         self.hecheng_task = WorkerTTS(self,
                                       files=self.hecheng_files if len(self.hecheng_files) > 0 else txt,
                                       role=role,
@@ -710,7 +765,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                       tts_type=self.tts_type.currentText(),
                                       func_name="hecheng",
                                       voice_autorate=issrt and self.voice_autorate.isChecked(),
-                                      audio_ajust=issrt and self.audio_ajust.isChecked(),
                                       tts_issrt=issrt)
         self.hecheng_task.start()
         self.hecheng_startbtn.setText(config.transobj["running"])
@@ -721,10 +775,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def tts_issrt_change(self, state):
         if state:
             self.voice_autorate.setDisabled(False)
-            self.audio_ajust.setDisabled(False)
         else:
             self.voice_autorate.setDisabled(True)
-            self.audio_ajust.setDisabled(True)
 
     # tts类型改变
     def tts_type_change(self, type):
@@ -735,10 +787,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.volume_rate.setDisabled(True)
             self.pitch_rate.setDisabled(True)
 
-
+        code = translator.get_code(show_text=self.hecheng_language.currentText())
         if type == 'gtts':
             self.hecheng_role.clear()
             self.hecheng_role.addItems(['gtts'])
+        elif type=='ChatTTS':
+            if code and code != '-' and code[:2] not in ['zh',  'en']:
+                self.tts_type.setCurrentText('edgeTTS')
+                QMessageBox.critical(self, config.transobj['anerror'], config.transobj['onlycnanden'])
+                return
+            self.hecheng_role.clear()
+            self.hecheng_role.addItems(['No']+list(config.ChatTTS_voicelist))
         elif type == "openaiTTS":
             self.hecheng_role.clear()
             self.hecheng_role.addItems(config.params['openaitts_role'].split(","))
@@ -757,7 +816,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.hecheng_role.clear()
             self.hecheng_role.addItems(config.params['ttsapi_voice_role'].split(","))
         elif type == 'GPT-SoVITS':
-            code = translator.get_code(show_text=self.hecheng_language.currentText())
             if code and code != '-' and code[:2] not in ['zh', 'ja', 'en']:
                 self.tts_type.setCurrentText('edgeTTS')
                 QMessageBox.critical(self, config.transobj['anerror'], config.transobj['nogptsovitslanguage'])
@@ -769,18 +827,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     # 合成语言变化，需要获取到角色
     def hecheng_language_fun(self, t):
         code = translator.get_code(show_text=t)
-        if code and code != '-' and self.tts_type.currentText() == 'GPT-SoVITS' and code[:2] not in ['zh', 'ja', 'en']:
+        tts_type=self.tts_type.currentText()
+        if code and code != '-' and tts_type == 'GPT-SoVITS' and code[:2] not in ['zh', 'ja', 'en']:
             # 除此指望不支持
             QMessageBox.critical(self, config.transobj['anerror'], config.transobj['nogptsovitslanguage'])
             self.tts_type.setCurrentText('edgeTTS')
-        if self.tts_type.currentText() not in ["edgeTTS", "AzureTTS"]:
+            return
+        if code and code != '-' and tts_type == 'ChatTTS' and code[:2] not in ['zh', 'en']:
+            self.tts_type.setCurrentText('edgeTTS')
+            # 除此指望不支持
+            QMessageBox.critical(self, config.transobj['anerror'], config.transobj['onlycnanden'])
+            return
+
+        if tts_type not in ["edgeTTS", "AzureTTS"]:
             return
         self.hecheng_role.clear()
         if t == '-':
             self.hecheng_role.addItems(['No'])
             return
 
-        show_rolelist = get_edge_rolelist() if config.params['tts_type'] == 'edgeTTS' else get_azure_rolelist()
+        show_rolelist = get_edge_rolelist() if tts_type == 'edgeTTS' else get_azure_rolelist()
         if not show_rolelist:
             show_rolelist = get_edge_rolelist()
         if not show_rolelist:
@@ -821,13 +887,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         file1 = self.hun_file1.text()
         file2 = self.hun_file2.text()
 
-        #rs, newfile1, _ = tools.rename_move(file1, is_dir=False)
-        #if rs:
-        #    file1 = newfile1
-        #rs, newfile2, _ = tools.rename_move(file2, is_dir=False)
-        #if rs:
-        #    file2 = newfile2
-
         cmd = ['-y', '-i', file1, '-i', file2, '-filter_complex',
                "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=2", '-ac', '2', savename]
         self.geshi_task = Worker([cmd], "hunhe", self)
@@ -862,6 +921,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         config.params["deeplx_address"] = self.settings.value("deeplx_address", "")
         config.params["chatgpt_api"] = self.settings.value("chatgpt_api", "")
         config.params["chatgpt_key"] = self.settings.value("chatgpt_key", "")
+        config.params["localllm_api"] = self.settings.value("localllm_api", "")
+        config.params["localllm_key"] = self.settings.value("localllm_key", "")
+        config.params["zijiehuoshan_key"] = self.settings.value("zijiehuoshan_key", "")
         config.params["tencent_SecretId"] = self.settings.value("tencent_SecretId", "")
         config.params["tencent_SecretKey"] = self.settings.value("tencent_SecretKey", "")
         config.params["gemini_key"] = self.settings.value("gemini_key", "")

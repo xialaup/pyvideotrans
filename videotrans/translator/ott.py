@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 import time
 import requests
 from videotrans.configure import config
 from videotrans.util import tools
+
 
 
 def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source_code=""):
@@ -19,15 +21,7 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
     url=url.replace('//translate','/translate')
     if not url.startswith('http'):
         url=f"http://{url}"
-    serv = tools.set_proxy()
-    proxies = None
-    if serv:
-        proxies = {
-            'http': serv,
-            'https': serv
-        }
-    if re.search(r'localhost',url) or re.match(r'https?://(\d+\.){3}\d+',url):
-        proxies={"http":"","https":""}
+    
     # 翻译后的文本
     target_text = []
     index = 0  # 当前循环需要开始的 i 数字,小于index的则跳过
@@ -72,7 +66,7 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
 
 
                 try:
-                    response = requests.post(url=url,json=data,proxies=proxies)
+                    response = requests.post(url=url,json=data,proxies={"https":"","http":""})
                 except Exception as e:
                     err=str(e)
                     break
@@ -83,13 +77,18 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
                 try:
                     result = response.json()
                 except Exception:
-                    err=config.transobj['notjson']+result.text
+                    err=config.transobj['notjson']+response.text
                     break
 
                 if "error" in result:
                     err=result['error']
                     break
-                result=result['translatedText'].strip().replace('&#39;','"').replace('&quot;',"'").split("\n")
+                result=tools.cleartext(result['translatedText']).split("\n")
+                result_length = len(result)
+                # 如果返回数量和原始语言数量不一致，则重新切割
+                if result_length < source_length:
+                    print(f'翻译前后数量不一致，需要重新切割')
+                    result = tools.format_result(it, result, target_lang=target_language)
                 if inst and inst.precent < 75:
                     inst.precent += round((i + 1) * 5 / len(split_source_text), 2)
                 if set_p:

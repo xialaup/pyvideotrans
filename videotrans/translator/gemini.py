@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import re
+import re,os
 import time
 from videotrans.configure import config
 from videotrans.util import tools
@@ -28,6 +28,23 @@ safetySettings = [
     },
 ]
 
+shound_del=False
+def update_proxy(type='set'):
+    global shound_del
+    if type=='del' and shound_del:
+        del os.environ['http_proxy']
+        del os.environ['https_proxy']
+        del os.environ['all_proxy']
+        shound_del=False
+    elif type=='set':
+        raw_proxy=os.environ.get('http_proxy')
+        if not raw_proxy:
+            proxy=tools.set_proxy()
+            if proxy:
+                shound_del=True
+                os.environ['http_proxy'] = proxy
+                os.environ['https_proxy'] = proxy
+                os.environ['all_proxy'] = proxy
 
 def get_error(num=5, type='error'):
     REASON_CN = {
@@ -55,6 +72,7 @@ def get_error(num=5, type='error'):
     return REASON_EN[num] if type == 'error' else forbid_en[num]
 
 def get_content(d,*,model=None,prompt=None):
+    update_proxy(type='set')
     response=None
     try:
         message=prompt.replace('{text}',"\n".join(d))
@@ -165,21 +183,25 @@ def trans(text_list, target_language="English", *, set_p=True, inst=None, stop=0
                         tools.set_process_box(text=result + "\n",func_name="fanyi",type="set")
                     continue
 
-                sep_res = result.strip().split("\n")
+                sep_res = tools.cleartext(result).split("\n")
                 raw_len=len(it)
                 sep_len=len(sep_res)
-                if sep_len>raw_len:
-                    sep_res[raw_len-1]=".".join(sep_len[raw_len-1:])
-                    sep_res=sep_res[:raw_len]
-                if sep_len != raw_len:
-                    sep_res=[]
-                    for it_n in it:
-                        try:
-                            t,response=get_content([it_n.strip()],model=model,prompt=prompt)
-                        except Exception as e:
-                            config.logger.error(f'触发安全限制，{t=},{it_n=}')
-                            t="--"
-                        sep_res.append(t)
+                # 如果返回数量和原始语言数量不一致，则重新切割
+                if sep_len<raw_len:
+                    print(f'翻译前后数量不一致，需要重新切割')
+                    sep_res=tools.format_result(it,sep_res,target_lang=target_language)
+                # if sep_len>raw_len:
+                #     sep_res[raw_len-1]=".".join(sep_len[raw_len-1:])
+                #     sep_res=sep_res[:raw_len]
+                # if sep_len != raw_len:
+                #     sep_res=[]
+                #     for it_n in it:
+                #         try:
+                #             t,response=get_content([it_n.strip()],model=model,prompt=prompt)
+                #         except Exception as e:
+                #             config.logger.error(f'触发安全限制，{t=},{it_n=}')
+                #             t="--"
+                #         sep_res.append(t)
 
                 for x, result_item in enumerate(sep_res):
                     if x < len(it):
@@ -204,9 +226,12 @@ def trans(text_list, target_language="English", *, set_p=True, inst=None, stop=0
                 index = 0 if i <= 1 else i
         else:
             break
+    update_proxy(type='del')
 
     if err:
         config.logger.error(f'[Gemini]翻译请求失败:{err=}')
+        if err.lower().find("Connection error")>-1:
+            err='连接失败 '+err
         raise Exception(f'Gemini:{err}')
 
     if not is_srt:

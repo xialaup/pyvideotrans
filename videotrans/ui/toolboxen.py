@@ -17,7 +17,7 @@ from videotrans.configure.config import box_lang
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        #MainWindow.resize(1180, 775)
+
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.centralwidget)
@@ -75,15 +75,6 @@ class Ui_MainWindow(object):
 
 
         self.formLayout_2.setObjectName("formLayout_2")
-        # self.label_9 = QtWidgets.QLabel(self.tab_4)
-        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
-        # sizePolicy.setHorizontalStretch(0)
-        # sizePolicy.setVerticalStretch(0)
-        # sizePolicy.setHeightForWidth(self.label_9.sizePolicy().hasHeightForWidth())
-        # self.label_9.setSizePolicy(sizePolicy)
-        # self.label_9.setMinimumSize(QtCore.QSize(0, 30))
-        # self.label_9.setObjectName("label_9")
-
 
         self.is_cuda = QtWidgets.QCheckBox(self.tab_4)
         self.is_cuda.setObjectName("is_cuda")
@@ -101,7 +92,8 @@ class Ui_MainWindow(object):
             config.uilanglist['faster model'],
             config.uilanglist['openai model'],
             "GoogleSpeech",
-            "zh_recogn中文识别" if config.defaulelang=='zh' else "zh_recogn only Chinese"
+            "zh_recogn中文识别" if config.defaulelang=='zh' else "zh_recogn only Chinese",
+            "豆包模型识别" if config.defaulelang=='zh' else "Doubao"
         ])
 
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.shibie_model_type)
@@ -118,18 +110,9 @@ class Ui_MainWindow(object):
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.shibie_model)
 
 
-        # self.horizontalLayout.addWidget(self.is_cuda)
-
-
-
-
-
-
-
         self.shibie_whisper_type = QtWidgets.QComboBox(self.tab_4)
         self.shibie_whisper_type.addItems(
             [config.transobj['whisper_type_all'],
-             config.transobj['whisper_type_split'],
              config.transobj['whisper_type_avg']]
         )
         self.shibie_whisper_type.setToolTip(config.transobj['fenge_tips'])
@@ -206,6 +189,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addLayout(self.hecheng_layout)
         self.horizontalLayout_10 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_10.setObjectName("horizontalLayout_10")
+        self.horizontalLayout_10_1 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_10_1.setObjectName("horizontalLayout_10_1")
         self.formLayout_3 = QtWidgets.QFormLayout()
         self.formLayout_3.setFormAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.formLayout_3.setObjectName("formLayout_3")
@@ -262,6 +247,15 @@ class Ui_MainWindow(object):
         self.hecheng_role.setObjectName("hecheng_role")
         self.formLayout_4.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.hecheng_role)
         self.horizontalLayout_10.addLayout(self.formLayout_4)
+        
+        self.listen_btn = QtWidgets.QPushButton(self.tab_2)
+        self.listen_btn.setFixedWidth(80)
+        self.listen_btn.setToolTip(config.uilanglist.get("shuoming01"))
+        self.listen_btn.setText(config.uilanglist.get("Trial dubbing"))
+        self.horizontalLayout_10.addWidget(self.listen_btn)
+
+
+
         self.formLayout_5 = QtWidgets.QFormLayout()
         self.formLayout_5.setFormAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.formLayout_5.setObjectName("formLayout_5")
@@ -275,7 +269,7 @@ class Ui_MainWindow(object):
         self.hecheng_rate.setMaximum(100)
         self.hecheng_rate.setObjectName("hecheng_rate")
         self.formLayout_5.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.hecheng_rate)
-        self.horizontalLayout_10.addLayout(self.formLayout_5)
+        self.horizontalLayout_10_1.addLayout(self.formLayout_5)
 
 
         self.tts_issrt = QtWidgets.QCheckBox(self.tab_2)
@@ -285,14 +279,14 @@ class Ui_MainWindow(object):
         self.voice_autorate.setEnabled(False)
         self.voice_autorate.setObjectName("voice_autorate")
 
-        self.audio_ajust = QtWidgets.QCheckBox(self.tab_2)
-        self.audio_ajust.setEnabled(False)
-        self.audio_ajust.setObjectName("audio_ajust")
+        # self.audio_ajust = QtWidgets.QCheckBox(self.tab_2)
+        # self.audio_ajust.setEnabled(False)
+        # self.audio_ajust.setObjectName("audio_ajust")
 
 
-        self.horizontalLayout_10.addWidget(self.tts_issrt)
-        self.horizontalLayout_10.addWidget(self.voice_autorate)
-        self.horizontalLayout_10.addWidget(self.audio_ajust)
+        self.horizontalLayout_10_1.addWidget(self.tts_issrt)
+        self.horizontalLayout_10_1.addWidget(self.voice_autorate)
+        # self.horizontalLayout_10_1.addWidget(self.audio_ajust)
 
         self.edge_volume_layout = QtWidgets.QHBoxLayout()
 
@@ -318,7 +312,7 @@ class Ui_MainWindow(object):
         self.edge_volume_layout.addWidget(self.pitch_rate)
 
 
-        self.horizontalLayout_10.addLayout(self.edge_volume_layout)
+        self.horizontalLayout_10_1.addLayout(self.edge_volume_layout)
 
 
 
@@ -328,11 +322,15 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.hecheng_startbtn.sizePolicy().hasHeightForWidth())
         self.hecheng_startbtn.setSizePolicy(sizePolicy)
-        self.hecheng_startbtn.setMinimumSize(QtCore.QSize(200, 30))
+        self.hecheng_startbtn.setMinimumSize(QtCore.QSize(200, 40))
         self.hecheng_startbtn.setObjectName("hecheng_startbtn")
         self.hecheng_startbtn.setCursor(Qt.PointingHandCursor)
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_10)
+        self.verticalLayout_4.addLayout(self.horizontalLayout_10_1)
+
+
+
         self.verticalLayout_4.addWidget(self.hecheng_startbtn)
         self.gridLayout_3 = QtWidgets.QGridLayout()
         self.gridLayout_3.setObjectName("gridLayout_3")
@@ -766,7 +764,7 @@ class Ui_MainWindow(object):
         self.tts_issrt.setToolTip(box_lang.get("If so, the line number and time value will skip reading aloud"))
         self.tts_issrt.setText(box_lang.get("Is srt?"))
         self.voice_autorate.setText(box_lang.get("Automatic acceleration?"))
-        self.audio_ajust.setText(config.transobj.get("auto_ajust"))
+        # self.audio_ajust.setText(config.transobj.get("auto_ajust"))
         self.hecheng_startbtn.setText(box_lang.get("Start"))
         self.label_7.setText(box_lang.get("Output audio name"))
         self.hecheng_out.setPlaceholderText(box_lang.get("Set the name of the generated audio file here. If not filled in, use the time and date command"))

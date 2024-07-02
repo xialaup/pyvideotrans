@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from tencentcloud.common import credential
 from tencentcloud.common.profile.client_profile import ClientProfile
@@ -16,6 +17,11 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
     set_p:
         是否实时输出日志，主界面中需要
     """
+    proxy=os.environ.get('http_proxy')
+    if proxy:
+        del os.environ['http_proxy']
+        del os.environ['https_proxy']
+        del os.environ['all_proxy']
 
     # 翻译后的文本
     target_text = []
@@ -77,7 +83,12 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
                 # 返回的resp是一个TextTranslateResponse的实例，与请求对象对应
                 resp = client.TextTranslate(req)
                 config.logger.info(f'[腾讯]返回:{resp.TargetText=}')
-                result = resp.TargetText.strip().replace('&#39;','"').replace('&quot;',"'").split("\n")
+                result = tools.cleartext(resp.TargetText).split("\n")
+                result_length=len(result)
+                # 如果返回数量和原始语言数量不一致，则重新切割
+                if result_length<source_length:
+                    print(f'翻译前后数量不一致，需要重新切割')
+                    result=tools.format_result(it,result,target_lang=target_language)
                 if inst and inst.precent < 75:
                     inst.precent += round((i + 1) * 5 / len(split_source_text), 2)
                 if set_p:
@@ -102,6 +113,11 @@ def trans(text_list, target_language="en", *, set_p=True,inst=None,stop=0,source
                 index=0 if i<=1 else i
         else:
             break
+
+    if proxy:
+        os.environ['http_proxy']=proxy
+        os.environ['https_proxy']=proxy
+        os.environ['all_proxy']=proxy
 
     if err:
         config.logger.error(f'[腾讯翻译]翻译请求失败:{err=}')

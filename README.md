@@ -1,4 +1,4 @@
-[English Readme](./README_EN.md)  /  [👑捐助该项目](./about.md) / Q群 905857759 / 微信公众号：搜一搜“ pyvideotrans ”
+[English Readme](./README_EN.md)  /  [👑捐助该项目](./about.md) / [Discord邀请链接](https://discord.gg/y9gUweVCCJ) / 微信公众号：搜一搜“ pyvideotrans ”
 
 # 视频翻译配音工具
 
@@ -7,9 +7,9 @@
 >
 > 语音识别支持 `faster-whisper`模型 `openai-whisper`模型 和 `GoogleSpeech` `zh_recogn阿里中文语音识别模型`.
 >
-> 文字翻译支持 `微软翻译|Google翻译|百度翻译|腾讯翻译|ChatGPT|AzureAI|Gemini|DeepL|DeepLX|离线翻译OTT`,并内置免费ChatGPT API翻译接口(apiskey.top赞助)
+> 文字翻译支持 `微软翻译|Google翻译|百度翻译|腾讯翻译|ChatGPT|AzureAI|Gemini|DeepL|DeepLX|离线翻译OTT`
 >
-> 文字合成语音支持 `Microsoft Edge tts` `Google tts` `Azure AI TTS` `Openai TTS` `Elevenlabs TTS` `自定义TTS服务器api` `GPT-SoVITS` [clone-voice](https://github.com/jianchang512/clone-voice)
+> 文字合成语音支持 `Microsoft Edge tts` `Google tts` `Azure AI TTS` `Openai TTS` `Elevenlabs TTS` `自定义TTS服务器api` `GPT-SoVITS` [clone-voice](https://github.com/jianchang512/clone-voice)  [ChatTTS-ui](https://github.com/jianchang512/ChatTTS-ui)
 >
 > 允许保留背景伴奏音乐等(基于uvr5)
 > 
@@ -55,6 +55,13 @@ https://github.com/jianchang512/pyvideotrans/assets/3378335/3811217a-26c8-4084-b
 # MacOS源码部署
 
 0. 打开终端窗口，分别执行如下命令
+	
+	> 执行前确保已安装 Homebrew，如果你没有安装 Homebrew,那么需要先安装
+	>
+	> 执行命令安装 Homebrew：  `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+	>
+	> 安装完成后，执行： `eval $(brew --config)`
+	>
 
     ```
     brew install libsndfile
@@ -63,14 +70,14 @@ https://github.com/jianchang512/pyvideotrans/assets/3378335/3811217a-26c8-4084-b
 
     brew install git
 
-    brew install python@3.12
+    brew install python@3.10
 
     ```
 
     继续执行
 
     ```
-    export PATH="/usr/local/opt/python@3.12/bin:$PATH"
+    export PATH="/usr/local/opt/python@3.10/bin:$PATH"
 
     source ~/.bash_profile 
 	
@@ -106,7 +113,7 @@ https://github.com/jianchang512/pyvideotrans/assets/3378335/3811217a-26c8-4084-b
 
 # Linux 源码部署
 
-0. CentOS/RHEL系依次执行如下命令安装 python3.12
+0. CentOS/RHEL系依次执行如下命令安装 python3.10
 
 ```
 
@@ -118,23 +125,23 @@ sudo yum install openssl-devel bzip2-devel libffi-devel
 
 cd /tmp
 
-wget https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tgz
+wget https://www.python.org/ftp/python/3.10.4/Python-3.10.4.tgz
 
-tar xzf Python-3.12.0.tgz
+tar xzf Python-3.10.4.tgz
 
-cd Python-3.12.0
+cd Python-3.10.4
 
 ./configure — enable-optimizations
 
 sudo make && sudo make install
 
-sudo alternatives — install /usr/bin/python3 python3 /usr/local/bin/python3.12 2
+sudo alternatives — install /usr/bin/python3 python3 /usr/local/bin/python3.10
 
 sudo yum install -y ffmpeg
 
 ```
 
-## Ubuntu/Debian系执行如下命令安装python3.12
+1. Ubuntu/Debian系执行如下命令安装python3.10
 
 ```
 
@@ -148,13 +155,13 @@ apt update
 
 sudo apt-get install libxcb-cursor0
 
-apt install python3.12
+apt install python3.10
 
-curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 
-pip 23.2.1 from /usr/local/lib/python3.12/site-packages/pip (python 3.12)
+pip 23.2.1 from /usr/local/lib/python3.10/site-packages/pip (python 3.10)
 
-sudo update-alternatives --install /usr/bin/python python /usr/local/bin/python3.12 1
+sudo update-alternatives --install /usr/bin/python python /usr/local/bin/python3.10 
 
 sudo update-alternatives --config python
 
@@ -163,7 +170,7 @@ apt-get install ffmpeg
 ```
 
 
-**打开任意一个终端，执行 `python3 -V`，如果显示 “3.12.0”，说明安装成功，否则失败**
+**打开任意一个终端，执行 `python3 -V`，如果显示 “3.10.4”，说明安装成功，否则失败**
 
 
 1. 创建个不含空格和中文的文件夹， 从终端打开该文件夹。
@@ -198,9 +205,9 @@ apt-get install ffmpeg
 
 # Window10/11 源码部署
 
-0. 打开 https://www.python.org/downloads/ 下载 windows3.12，下载后双击，一路next，注意要选中“Add to PATH”
+0. 打开 https://www.python.org/downloads/ 下载 windows3.10，下载后双击，一路next，注意要选中“Add to PATH”
 
-   **打开一个cmd，执行 `python -V`，如果输出不是 `3.12.3`,说明安装出错，或没有加入 `Add to PATH`,请重新安装**
+   **打开一个cmd，执行 `python -V`，如果输出不是 `3.10.4`,说明安装出错，或没有加入 `Add to PATH`,请重新安装**
 
 1. 打开 https://github.com/git-for-windows/git/releases/download/v2.45.0.windows.1/Git-2.45.0-64-bit.exe ，下载git，下载后双击一路下一步。
 2. 找个不含空格和中文的文件夹，地址栏中输入 `cmd`回车，打开终端，以下命令均在该终端中执行
@@ -233,6 +240,23 @@ apt-get install ffmpeg
 
 
 
+#  源码部署问题说明
+
+1. 默认使用 ctranslate2的4.x版本，仅支持CUDA12.x版本，如果你的cuda低于12，并且无法升级cuda到12.x，请执行命令卸载ctranslate2然后重新安装
+
+```
+
+pip uninstall -y ctranslate2
+
+pip install ctranslate2==3.24.0
+
+```
+
+2. 可能会遇到 `xx module not found ` 之类错误，请打开 requirements.txt，搜索该 xx 模块，然后将xx后的 ==及等会后的版本号去掉
+
+
+
+
 # 使用教程和文档
 
 请查看 https://pyvideotrans.com/guide.html
@@ -257,10 +281,13 @@ apt-get install ffmpeg
 
 # 软件预览截图
 
-![image](https://github.com/jianchang512/pyvideotrans/assets/3378335/e5089358-a6e5-4989-9a50-1876c51dc2a7)
+![image](https://github.com/jianchang512/pyvideotrans/assets/3378335/55faecd9-5ac6-4962-b0f3-ef2283000c64)
+
 
 
 # 相关联项目
+
+[ChatTTS-ui:使用ChatTTS合成声音的UI界面](https://github.com/jianchang512/ChatTTS-ui)
 
 [OTT:本地离线文字翻译工具](https://github.com/jianchang512/ott)
 

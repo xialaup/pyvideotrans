@@ -9,19 +9,20 @@
 
 
 from PySide6 import QtCore,  QtWidgets
+from PySide6.QtCore import Qt
 from videotrans.configure import config
 
 class Ui_azurettsform(object):
     def setupUi(self, azurettsform):
         azurettsform.setObjectName("azurettsform")
         azurettsform.setWindowModality(QtCore.Qt.NonModal)
-        azurettsform.resize(400, 223)
+        azurettsform.resize(400, 250)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(azurettsform.sizePolicy().hasHeightForWidth())
         azurettsform.setSizePolicy(sizePolicy)
-        azurettsform.setMaximumSize(QtCore.QSize(400, 300))
+        azurettsform.setMaximumSize(QtCore.QSize(400, 250))
         self.gridLayout = QtWidgets.QGridLayout(azurettsform)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
@@ -31,6 +32,8 @@ class Ui_azurettsform(object):
         
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
+        #self.verticalLayout.setAlignment(Qt.AlignTop)
+
         
         
         
@@ -49,6 +52,7 @@ class Ui_azurettsform(object):
         self.label.setObjectName("label")
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label)
         self.speech_region = QtWidgets.QLineEdit(azurettsform)
+        self.speech_region.setPlaceholderText("如果不知怎么填请留空" if config.defaulelang=='zh' else "Leave blank if you don't know how to fill in")
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -84,15 +88,99 @@ class Ui_azurettsform(object):
         
         
         self.verticalLayout.addLayout(self.formLayout_22)
+        
+        
+        self.formLayout_222 = QtWidgets.QFormLayout()
+        self.formLayout_222.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
+        self.formLayout_222.setFormAlignment(QtCore.Qt.AlignJustify|QtCore.Qt.AlignVCenter)
+        self.formLayout_222.setObjectName("formLayout_222")
+        
+        self.label222 = QtWidgets.QLabel(azurettsform)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label222.sizePolicy().hasHeightForWidth())
+        self.label222.setSizePolicy(sizePolicy)
+        self.label222.setMinimumSize(QtCore.QSize(100, 35))
+        self.label222.setAlignment(QtCore.Qt.AlignJustify|QtCore.Qt.AlignVCenter)
+        self.label222.setObjectName("label222")
+        self.formLayout_222.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label222)
+        
+        
+        
+        
+        
+        self.azuretts_area = QtWidgets.QComboBox(azurettsform)
+        
+        self.azuretts_area.setObjectName("azuretts_area")
+        self.azuretts_area.addItems([
+            "EastAsia",
+            "SoutheastAsia",
+            "AustraliaEast",
+            "AustraliaSoutheast",
+            "BrazilSouth",
+            "CanadaCentral",
+            "CanadaEast",
+            "WestEurope",
+            "NorthEurope",
+            "CentralIndia",
+            "SouthIndia",
+            "WestIndia",
+            "JapanEast",
+            "JapanWest",
+            "KoreaCentral",
+            "KoreaSouth",
+            "UkWest",
+            "UkSouth",
+            "NorthCentralUs",
+            "EastUs",
+            "WestUs2",
+            "SouthCentralUs",
+            "CentralUs",
+            "EastUs2",
+            "WestUs",
+            "WestCentralUs",
+            "GermanyCentral",
+            "GermanyNortheast",
+            "ChinaNorth",
+            "ChinaEast",
+            "USGovArizona",
+            "USGovTexas",
+            "USGovIowa",
+            "USGovVirginia",
+            "USDoDCentral",
+            "USDoDEast"
+        ])
+        
+        self.azuretts_area.setMinimumSize(QtCore.QSize(210, 40))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        #sizePolicy.setHeightForWidth(self.azuretts_area.sizePolicy().hasHeightForWidth())
+        self.azuretts_area.setSizePolicy(sizePolicy)
+        
+        self.formLayout_222.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.azuretts_area)
+        
+        self.verticalLayout.addLayout(self.formLayout_222)
         self.verticalLayout.addLayout(self.formLayout_2)
         
         
         
-        self.verticalLayout_2.addLayout(self.verticalLayout)
         self.save = QtWidgets.QPushButton(azurettsform)
         self.save.setMinimumSize(QtCore.QSize(0, 35))
         self.save.setObjectName("save")
-        self.verticalLayout_2.addWidget(self.save)
+        
+        self.test = QtWidgets.QPushButton(azurettsform)
+        self.test.setMinimumSize(QtCore.QSize(0, 35))
+        self.test.setObjectName("test")
+        
+        hv=QtWidgets.QHBoxLayout()
+        hv.addWidget(self.save)
+        hv.addWidget(self.test)
+        
+        
+        self.verticalLayout.addLayout(hv)
+        self.verticalLayout_2.addLayout(self.verticalLayout)
         self.gridLayout.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
 
         self.retranslateUi(azurettsform)
@@ -100,6 +188,8 @@ class Ui_azurettsform(object):
 
     def retranslateUi(self, azurettsform):
         azurettsform.setWindowTitle("AzureTTS")
-        self.label.setText( "区域URL" if config.defaulelang=='zh' else "SPEECH_REGION")
+        self.label.setText( "自定义区域URL" if config.defaulelang=='zh' else "Your SPEECH REGION")
         self.label22.setText( "授权key" if config.defaulelang=='zh' else "SPEECH_KEY")
+        self.label222.setText( "选择区域" if config.defaulelang=='zh' else "REGION")
         self.save.setText('保存' if config.defaulelang=='zh' else "Save")
+        self.test.setText('测试' if config.defaulelang=='zh' else "Test")

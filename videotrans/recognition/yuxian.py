@@ -4,6 +4,7 @@ import os
 import re
 from datetime import timedelta
 
+import zhconv
 from faster_whisper import WhisperModel
 from pydub import AudioSegment
 from pydub.silence import detect_nonsilent
@@ -13,7 +14,7 @@ from videotrans.util import tools
 
 
 # split audio by silence
-def shorten_voice(normalized_sound, max_interval=60000):
+def shorten_voice(normalized_sound, max_interval=1200000):
     normalized_sound = tools.match_target_amplitude(normalized_sound, -20.0)
     nonsilent_data = []
     audio_chunks = detect_nonsilent(normalized_sound, min_silence_len=int(config.settings['voice_silence']),
@@ -36,14 +37,15 @@ def recogn(*,
            detect_language=None,
            audio_file=None,
            cache_folder=None,
-           model_name="base",
+           model_name="tiny",
            set_p=True,
            inst=None,
            is_cuda=None):
-    if set_p:
-        tools.set_process(config.transobj['fengeyinpinshuju'], btnkey=inst.init['btnkey'] if inst else "")
+    print('预先分割')
     if config.exit_soft or (config.current_status != 'ing' and config.box_recogn != 'ing'):
         return False
+    if set_p:
+        tools.set_process(config.transobj['fengeyinpinshuju'], btnkey=inst.init['btnkey'] if inst else "")
     noextname = os.path.basename(audio_file)
     tmp_path = f'{cache_folder}/{noextname}_tmp'
     if not os.path.isdir(tmp_path):
@@ -68,15 +70,28 @@ def recogn(*,
 
     raw_subtitles = []
     total_length = len(nonsilent_data)
+    if model_name.startswith('distil-'):
+        com_type= "default"
+    elif is_cuda:
+        com_type=config.settings['cuda_com_type']
+    else:
+        com_type='default'
+    local_res=True if model_name.find('/')==-1 else False
+    down_root=config.rootdir + "/models"
+    if set_p and inst and model_name.find('/')>0:
+        if not os.path.isdir(down_root+'/models--'+model_name.replace('/','--')):
+            inst.parent.status_text='下载模型中，用时可能较久' if config.defaulelang=='zh'else 'Download model from huggingface'
+        else:
+            inst.parent.status_text='加载或下载模型中，用时可能较久' if config.defaulelang=='zh'else 'Load model from local or download model from huggingface'
     model = WhisperModel(
             model_name,
             device="cuda" if is_cuda else "cpu",
-            compute_type="float32" if model_name.startswith('distil-') else config.settings['cuda_com_type'],
-            download_root=config.rootdir + "/models",
-            local_files_only=True)
+            compute_type=com_type,
+            download_root=down_root,
+            local_files_only=local_res)
     for i, duration in enumerate(nonsilent_data):
         if config.exit_soft or (config.current_status != 'ing' and config.box_recogn != 'ing'):
-            del model
+            #del model
             return False
         start_time, end_time, buffered = duration
 
@@ -85,7 +100,7 @@ def recogn(*,
         audio_chunk.export(chunk_filename, format="wav")
 
         if config.exit_soft or (config.current_status != 'ing' and config.box_recogn != 'ing'):
-            del model
+            #del model
             return False
         text = ""
         try:
@@ -97,32 +112,32 @@ def recogn(*,
                                            vad_filter=bool(config.settings['vad']),
                                            vad_parameters=dict(
                                                min_silence_duration_ms=config.settings['overall_silence'],
-                                               max_speech_duration_s=config.settings['overall_maxsecs']
+                                               max_speech_duration_s=config.settings['overall_maxsecs'],
+                                               threshold=config.settings['overall_threshold'],
+                                                speech_pad_ms=config.settings['overall_speech_pad_ms']
                                            ),
                                            word_timestamps=True,
                                            language=detect_language,
-                                           initial_prompt=None if detect_language != 'zh' else config.settings['initial_prompt_zh'], )
+                                           initial_prompt=config.settings['initial_prompt_zh'])
             for t in segments:
-                if detect_language == 'zh' and t.text == config.settings['initial_prompt_zh']:
+                if t.text == config.settings['initial_prompt_zh']:
                     continue
                 start_time, end_time, buffered = duration
                 text = t.text
                 text = f"{text.capitalize()}. ".replace('&#39;', "'")
                 text = re.sub(r'&#\d+;', '', text).strip().strip('.')
-                if detect_language == 'zh' and text == config.settings['initial_prompt_zh']:
+                if text == config.settings['initial_prompt_zh']:
                     continue
                 if not text or re.match(r'^[，。、？‘’“”；：（｛｝【】）:;"\'\s \d`!@#$%^&*()_+=.,?/\\-]*$', text):
                     continue
+                if detect_language[:2] == 'zh' and config.settings['zh_hant_s']:
+                    text = zhconv.convert(text, 'zh-hans')
                 end_time = start_time + t.words[-1].end * 1000
                 start_time += t.words[0].start * 1000
-                start = timedelta(milliseconds=start_time)
-                stmp = str(start).split('.')
-                if len(stmp) == 2:
-                    start = f'{stmp[0]},{int(int(stmp[-1]) / 1000)}'
-                end = timedelta(milliseconds=end_time)
-                etmp = str(end).split('.')
-                if len(etmp) == 2:
-                    end = f'{etmp[0]},{int(int(etmp[-1]) / 1000)}'
+                start = tools.ms_to_time_string(ms=start_time)
+
+                end = tools.ms_to_time_string(ms=end_time)
+
                 srt_line = {"line": len(raw_subtitles) + 1, "time": f"{start} --> {end}", "text": text}
                 raw_subtitles.append(srt_line)
                 if set_p:
@@ -135,7 +150,7 @@ def recogn(*,
                 else:
                     tools.set_process_box(text=f"{srt_line['line']}\n{srt_line['time']}\n{srt_line['text']}\n\n", func_name="shibie", type="set")
         except Exception as e:
-            del model
+            #del model
             raise Exception(str(e.args)+str(e))
 
     if set_p:

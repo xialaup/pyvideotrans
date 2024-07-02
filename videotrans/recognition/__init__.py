@@ -8,6 +8,7 @@ from .avg import recogn as avg_recogn
 from .zh import recogn as zh_recogn
 from .openai import recogn as openai_recogn
 from .google import recogn as google_recogn
+from .doubao import recogn as doubao_recogn
 
 logging.basicConfig()
 logging.getLogger("faster_whisper").setLevel(logging.DEBUG)
@@ -25,6 +26,8 @@ def run(*,
         model_type='faster',
         is_cuda=None
     ):
+    print(f'{model_type=}')
+
     if config.exit_soft or (config.current_status != 'ing' and config.box_recogn != 'ing'):
         return False
     if model_name.startswith('distil-'):
@@ -51,7 +54,14 @@ def run(*,
             cache_folder=cache_folder,
             set_p=set_p,
             inst=None)
-    elif type == "all":
+    elif model_type=='doubao':
+        rs = doubao_recogn(
+            detect_language=detect_language,
+            audio_file=audio_file,
+            cache_folder=cache_folder,
+            set_p=set_p,
+            inst=inst)
+    elif type in ["all",'yuxian']:
         rs = all_recogn(
             detect_language=detect_language,
             audio_file=audio_file,
@@ -69,15 +79,15 @@ def run(*,
             set_p=set_p,
             inst=inst,
             is_cuda=is_cuda)
-    else:
-        rs = yuxian_recogn(
-            detect_language=detect_language,
-            audio_file=audio_file,
-            cache_folder=cache_folder,
-            model_name=model_name,
-            set_p=set_p,
-            inst=inst,
-            is_cuda=is_cuda)
+    # else:
+    #     rs = yuxian_recogn(
+    #         detect_language=detect_language,
+    #         audio_file=audio_file,
+    #         cache_folder=cache_folder,
+    #         model_name=model_name,
+    #         set_p=set_p,
+    #         inst=inst,
+    #         is_cuda=is_cuda)
     try:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()

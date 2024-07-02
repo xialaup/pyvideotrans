@@ -16,12 +16,12 @@ class PlayMp3(QThread):
         self.obj=obj
     def run(self):
         try:
+            self.obj['voice_file']=self.obj['voice_file'].replace('%','')
             if not tools.vail_file(self.obj['voice_file']):
-                print(self.obj)
                 text_to_speech(
                     text=self.obj['text'],
                     role=self.obj['role'],
-                    tts_type=config.params['tts_type'],
+                    tts_type=self.obj['tts_type'],
                     filename=self.obj['voice_file'],
                     play=True,
                     volume=self.obj['volume'],
